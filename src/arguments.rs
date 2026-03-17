@@ -35,6 +35,10 @@ impl Arguments {
       .output()
       .ok()
       .and_then(|output| {
+        // Validate tmux command succeeded
+        if !output.status.success() {
+          return None;
+        }
         let session = String::from_utf8(output.stdout).ok()?;
         let session = session.trim();
         if session.is_empty() {

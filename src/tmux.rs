@@ -124,14 +124,21 @@ impl Tmux {
     }
 
     let session = pane.session.trim();
+    let session_lower = session.to_ascii_lowercase();
 
     filter
       .iter()
-      .filter(|f| !f.is_empty())
-      .any(|f| {
+      .filter_map(|f| {
         let trimmed = f.trim();
-        session.eq_ignore_ascii_case(trimmed)
-          || session.to_ascii_lowercase().contains(&trimmed.to_ascii_lowercase())
+        if trimmed.is_empty() {
+          None
+        } else {
+          Some(trimmed)
+        }
+      })
+      .any(|f| {
+        session.eq_ignore_ascii_case(f)
+          || session_lower.contains(&f.to_ascii_lowercase())
       })
   }
 
@@ -1164,5 +1171,33 @@ mod tests {
     tmux.capture_with_runner(&runner).unwrap();
 
     assert_eq!(tmux.panes.len(), 2);
+  }
+
+  #[test]
+  fn whitespace_only_session_filter_shows_no_panes() {
+    let mut capture_outputs = BTreeMap::new();
+
+    capture_outputs.insert("session1:0.0".to_string(), "foo\n".to_string());
+    capture_outputs.insert("session2:0.0".to_string(), "bar\n".to_string());
+
+    let runner = MockCommandRunner {
+      capture_outputs,
+      list_panes_output: format!(
+        "{}\n{}\n",
+        pane("session1", 0, 0, "%0", "bash", ""),
+        pane("session2", 0, 0, "%1", "bash", "")
+      ),
+      ..Default::default()
+    };
+
+    let mut tmux = Tmux::new(&Config {
+      // Whitespace-only tokens should not match anything
+      session_filter: vec!["   ".to_string(), "\t".to_string()],
+      ..Config::default()
+    });
+
+    tmux.capture_with_runner(&runner).unwrap();
+
+    assert_eq!(tmux.panes.len(), 0);
   }
 }
