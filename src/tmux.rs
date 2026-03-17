@@ -112,10 +112,23 @@ impl Tmux {
     }
 
     let command = pane.command.trim();
+    let pane_title = pane.pane_title.trim();
 
     filter
       .iter()
-      .any(|f| command.eq_ignore_ascii_case(f.trim()))
+      .any(|f| {
+        let filter_term = f.trim();
+        // Match against command
+        if command.eq_ignore_ascii_case(filter_term) {
+          return true;
+        }
+        // For claude filter, also check pane_title for "Claude Code"
+        if filter_term.eq_ignore_ascii_case("claude")
+          && pane_title.to_ascii_lowercase().contains("claude") {
+          return true;
+        }
+        false
+      })
   }
 
   fn matches_session_filter(pane: &Pane, filter: &[String]) -> bool {
@@ -291,6 +304,7 @@ mod tests {
       "command": command,
       "id": id,
       "index": index,
+      "pane_title": "",
       "path": path,
       "session": session,
       "window_index": window_index,
@@ -369,6 +383,7 @@ mod tests {
         command: String::new(),
         content: "Hello World\n".to_string(),
         id: "%0".to_string(),
+        pane_title: String::new(),
         index: 0,
         path: String::new(),
         session: "session1".to_string(),
@@ -408,6 +423,7 @@ mod tests {
           command: String::new(),
           content: "Pane 1\n".to_string(),
           id: "%0".to_string(),
+        pane_title: String::new(),
           index: 0,
           path: String::new(),
           session: "session1".to_string(),
@@ -418,6 +434,7 @@ mod tests {
           command: String::new(),
           content: "Pane 2\n".to_string(),
           id: "%1".to_string(),
+        pane_title: String::new(),
           index: 1,
           path: String::new(),
           session: "session1".to_string(),
@@ -428,6 +445,7 @@ mod tests {
           command: String::new(),
           content: "Pane 3\n".to_string(),
           id: "%2".to_string(),
+        pane_title: String::new(),
           index: 0,
           path: String::new(),
           session: "session2".to_string(),
@@ -466,6 +484,7 @@ mod tests {
         command: String::new(),
         content: "Pane 1\n".to_string(),
         id: "%0".to_string(),
+        pane_title: String::new(),
         index: 0,
         path: String::new(),
         session: "session1".to_string(),
@@ -501,6 +520,7 @@ mod tests {
         command: String::new(),
         content: "Content\n".to_string(),
         id: "%10".to_string(),
+        pane_title: String::new(),
         index: 3,
         path: String::new(),
         session: "mysession".to_string(),
@@ -535,6 +555,7 @@ mod tests {
         command: String::new(),
         content: "Content\n".to_string(),
         id: "%0".to_string(),
+        pane_title: String::new(),
         index: 0,
         path: String::new(),
         session: "session1".to_string(),
@@ -569,6 +590,7 @@ mod tests {
         command: String::new(),
         content: "Line 1\nLine 2\nLine 3\n".to_string(),
         id: "%0".to_string(),
+        pane_title: String::new(),
         index: 0,
         path: String::new(),
         session: "session1".to_string(),
@@ -586,6 +608,7 @@ mod tests {
           command: String::new(),
           content: "one".to_string(),
           id: "%0".to_string(),
+        pane_title: String::new(),
           index: 0,
           path: String::new(),
           session: "session1".to_string(),
@@ -596,6 +619,7 @@ mod tests {
           command: String::new(),
           content: "two".to_string(),
           id: "%1".to_string(),
+        pane_title: String::new(),
           index: 1,
           path: String::new(),
           session: "session1".to_string(),
@@ -614,6 +638,7 @@ mod tests {
         command: String::new(),
         content: "one".to_string(),
         id: "%0".to_string(),
+        pane_title: String::new(),
         index: 0,
         path: String::new(),
         session: "session1".to_string(),
@@ -655,6 +680,7 @@ mod tests {
       command: String::new(),
       content: String::new(),
       id: "%12".to_string(),
+        pane_title: String::new(),
       index: 2,
       path: String::new(),
       session: "mysession".to_string(),
@@ -679,6 +705,7 @@ mod tests {
       command: String::new(),
       content: String::new(),
       id: "%3".to_string(),
+        pane_title: String::new(),
       index: 0,
       path: String::new(),
       session: "mysession".to_string(),
@@ -717,6 +744,7 @@ mod tests {
         command: "spymux".to_string(),
         content: String::new(),
         id: "%0".to_string(),
+        pane_title: String::new(),
         index: 0,
         path: "/home/project".to_string(),
         session: "session1".to_string(),
@@ -748,6 +776,7 @@ mod tests {
         command: "SpYmUx".to_string(),
         content: String::new(),
         id: "%0".to_string(),
+        pane_title: String::new(),
         index: 0,
         path: "/home/project".to_string(),
         session: "session1".to_string(),
@@ -1215,5 +1244,51 @@ mod tests {
     tmux.capture_with_runner(&runner).unwrap();
 
     assert_eq!(tmux.panes.len(), 0);
+  }
+
+  #[test]
+  fn claude_filter_matches_pane_title() {
+    let mut capture_outputs = BTreeMap::new();
+
+    capture_outputs.insert("session1:0.0".to_string(), "foo\n".to_string());
+    capture_outputs.insert("session1:0.1".to_string(), "bar\n".to_string());
+
+    let runner = MockCommandRunner {
+      capture_outputs,
+      list_panes_output: format!(
+        "{}\n{}\n",
+        json!({
+          "command": "bash",
+          "id": "%0",
+          "index": 0,
+          "pane_title": "✳ Claude Code",
+          "path": "",
+          "session": "session1",
+          "window_index": 0,
+          "window_name": ""
+        }),
+        json!({
+          "command": "vim",
+          "id": "%1",
+          "index": 1,
+          "pane_title": "vim",
+          "path": "",
+          "session": "session1",
+          "window_index": 0,
+          "window_name": ""
+        })
+      ),
+      ..Default::default()
+    };
+
+    let mut tmux = Tmux::new(&Config {
+      command_filter: vec!["claude".to_string()],
+      ..Config::default()
+    });
+
+    tmux.capture_with_runner(&runner).unwrap();
+
+    assert_eq!(tmux.panes.len(), 1);
+    assert_eq!(tmux.panes[0].pane_title, "✳ Claude Code");
   }
 }

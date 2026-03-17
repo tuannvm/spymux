@@ -7,6 +7,8 @@ pub(crate) struct Pane {
   pub(crate) content: String,
   pub(crate) id: String,
   pub(crate) index: usize,
+  #[serde(default)]
+  pub(crate) pane_title: String,
   pub(crate) path: String,
   pub(crate) session: String,
   #[serde(default)]
@@ -25,6 +27,7 @@ impl Pane {
       "\"command\":\"#{pane_current_command}\",",
       "\"id\":\"#{pane_id}\",",
       "\"index\":#{pane_index},",
+      "\"pane_title\":\"#{pane_title}\",",
       "\"path\":\"#{pane_current_path}\",",
       "\"session\":\"#{session_name}\",",
       "\"window_index\":#{window_index},",
