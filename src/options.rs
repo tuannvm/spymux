@@ -10,6 +10,16 @@ pub(crate) struct Options {
     help = "Filter panes by command (comma-separated)"
   )]
   pub(crate) commands: Vec<String>,
+  #[clap(
+    short = 's',
+    long,
+    value_name = "SESSION",
+    value_delimiter = ',',
+    help = "Filter panes by session name (comma-separated)"
+  )]
+  pub(crate) sessions: Vec<String>,
+  #[clap(long, help = "Show only panes running Claude Code")]
+  pub(crate) claude: bool,
   #[clap(short, long, help = "Disable colored output")]
   pub(crate) no_colors: bool,
   #[clap(

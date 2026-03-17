@@ -3,6 +3,7 @@ use super::*;
 #[derive(Debug, Default)]
 pub(crate) struct Tmux {
   pub(crate) command_filter: Vec<String>,
+  pub(crate) session_filter: Vec<String>,
   pub(crate) excluded_pane_ids: Vec<String>,
   pub(crate) include_escape_codes: bool,
   pub(crate) panes: Vec<Pane>,
@@ -40,11 +41,13 @@ impl Tmux {
   fn capture_with_runner(&mut self, runner: &dyn CommandRunner) -> Result {
     let excluded = &self.excluded_pane_ids;
     let command_filter = &self.command_filter;
+    let session_filter = &self.session_filter;
 
     self.panes = Self::list_panes(runner)?
       .into_iter()
       .filter(|pane| !excluded.contains(&pane.id))
       .filter(|pane| Self::matches_command_filter(pane, command_filter))
+      .filter(|pane| Self::matches_session_filter(pane, session_filter))
       .map(|pane| self.capture_pane(pane, runner))
       .collect::<Result<Vec<_>>>()?;
 
@@ -115,9 +118,22 @@ impl Tmux {
       .any(|f| command.eq_ignore_ascii_case(f.trim()))
   }
 
+  fn matches_session_filter(pane: &Pane, filter: &[String]) -> bool {
+    if filter.is_empty() {
+      return true;
+    }
+
+    let session = pane.session.trim();
+
+    filter
+      .iter()
+      .any(|f| session.eq_ignore_ascii_case(f.trim()) || session.contains(f.trim()))
+  }
+
   pub(crate) fn new(config: &Config) -> Self {
     Self {
       command_filter: config.command_filter.clone(),
+      session_filter: config.session_filter.clone(),
       excluded_pane_ids: Vec::new(),
       include_escape_codes: config.color_output,
       panes: Vec::new(),
@@ -1005,5 +1021,115 @@ mod tests {
     tmux.capture_with_runner(&runner).unwrap();
     assert_eq!(tmux.panes.len(), 1);
     assert_eq!(tmux.panes[0].command, "nvim");
+  }
+
+  #[test]
+  fn session_filter_includes_matching_sessions() {
+    let mut capture_outputs = BTreeMap::new();
+
+    capture_outputs.insert("session1:0.0".to_string(), "foo\n".to_string());
+    capture_outputs.insert("session2:0.0".to_string(), "bar\n".to_string());
+    capture_outputs.insert("session3:0.0".to_string(), "baz\n".to_string());
+
+    let runner = MockCommandRunner {
+      capture_outputs,
+      list_panes_output: format!(
+        "{}\n{}\n{}\n",
+        pane("session1", 0, 0, "%0", "bash", ""),
+        pane("session2", 0, 0, "%1", "bash", ""),
+        pane("session3", 0, 0, "%2", "bash", "")
+      ),
+      ..Default::default()
+    };
+
+    let mut tmux = Tmux::new(&Config {
+      session_filter: vec!["session1".to_string(), "session3".to_string()],
+      ..Config::default()
+    });
+
+    tmux.capture_with_runner(&runner).unwrap();
+
+    assert_eq!(tmux.panes.len(), 2);
+    assert!(tmux.panes.iter().all(|p| {
+      p.session == "session1" || p.session == "session3"
+    }));
+  }
+
+  #[test]
+  fn session_filter_is_case_insensitive() {
+    let mut capture_outputs = BTreeMap::new();
+
+    capture_outputs.insert("MySession:0.0".to_string(), "foo\n".to_string());
+
+    let runner = MockCommandRunner {
+      capture_outputs,
+      list_panes_output: format!(
+        "{}\n",
+        pane("MySession", 0, 0, "%0", "bash", "")
+      ),
+      ..Default::default()
+    };
+
+    let mut tmux = Tmux::new(&Config {
+      session_filter: vec!["mysession".to_string()],
+      ..Config::default()
+    });
+
+    tmux.capture_with_runner(&runner).unwrap();
+
+    assert_eq!(tmux.panes.len(), 1);
+    assert_eq!(tmux.panes[0].session, "MySession");
+  }
+
+  #[test]
+  fn session_filter_supports_partial_matching() {
+    let mut capture_outputs = BTreeMap::new();
+
+    capture_outputs.insert("work-project1:0.0".to_string(), "foo\n".to_string());
+    capture_outputs.insert("personal:0.0".to_string(), "bar\n".to_string());
+
+    let runner = MockCommandRunner {
+      capture_outputs,
+      list_panes_output: format!(
+        "{}\n{}\n",
+        pane("work-project1", 0, 0, "%0", "bash", ""),
+        pane("personal", 0, 0, "%1", "bash", "")
+      ),
+      ..Default::default()
+    };
+
+    let mut tmux = Tmux::new(&Config {
+      session_filter: vec!["work".to_string()],
+      ..Config::default()
+    });
+
+    tmux.capture_with_runner(&runner).unwrap();
+
+    assert_eq!(tmux.panes.len(), 1);
+    assert_eq!(tmux.panes[0].session, "work-project1");
+  }
+
+  #[test]
+  fn empty_session_filter_shows_all_panes() {
+    let mut capture_outputs = BTreeMap::new();
+
+    capture_outputs.insert("session1:0.0".to_string(), "foo\n".to_string());
+    capture_outputs.insert("session2:0.0".to_string(), "bar\n".to_string());
+
+    let runner = MockCommandRunner {
+      capture_outputs,
+      list_panes_output: format!(
+        "{}\n{}\n",
+        pane("session1", 0, 0, "%0", "bash", ""),
+        pane("session2", 0, 0, "%1", "bash", "")
+      ),
+      ..Default::default()
+    };
+
+    let mut tmux = Tmux::new(&Config::default());
+
+    tmux.capture_with_runner(&runner).unwrap();
+
+    assert_eq!(tmux.panes.len(), 2);
   }
 }

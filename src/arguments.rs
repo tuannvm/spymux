@@ -32,9 +32,16 @@ impl Arguments {
         |rate| Duration::from_millis(rate.get()),
       );
 
+      // Handle --claude flag: adds "claude" to command filter
+      let mut command_filter = self.options.commands;
+      if self.options.claude {
+        command_filter.push("claude".to_string());
+      }
+
       App::new(Config {
         color_output: !self.options.no_colors,
-        command_filter: self.options.commands,
+        command_filter,
+        session_filter: self.options.sessions,
         refresh_rate,
       })?
       .run()
