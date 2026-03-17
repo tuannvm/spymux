@@ -34,7 +34,7 @@ impl Arguments {
 
       // Handle --claude flag: adds "claude" to command filter
       let mut command_filter = self.options.commands;
-      if self.options.claude {
+      if self.options.claude && !command_filter.iter().any(|c| c.eq_ignore_ascii_case("claude")) {
         command_filter.push("claude".to_string());
       }
 

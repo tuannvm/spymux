@@ -127,7 +127,12 @@ impl Tmux {
 
     filter
       .iter()
-      .any(|f| session.eq_ignore_ascii_case(f.trim()) || session.contains(f.trim()))
+      .filter(|f| !f.is_empty())
+      .any(|f| {
+        let trimmed = f.trim();
+        session.eq_ignore_ascii_case(trimmed)
+          || session.to_ascii_lowercase().contains(&trimmed.to_ascii_lowercase())
+      })
   }
 
   pub(crate) fn new(config: &Config) -> Self {
@@ -1107,6 +1112,34 @@ mod tests {
 
     assert_eq!(tmux.panes.len(), 1);
     assert_eq!(tmux.panes[0].session, "work-project1");
+  }
+
+  #[test]
+  fn session_filter_partial_match_is_case_insensitive() {
+    let mut capture_outputs = BTreeMap::new();
+
+    capture_outputs.insert("Work-Project1:0.0".to_string(), "foo\n".to_string());
+    capture_outputs.insert("personal:0.0".to_string(), "bar\n".to_string());
+
+    let runner = MockCommandRunner {
+      capture_outputs,
+      list_panes_output: format!(
+        "{}\n{}\n",
+        pane("Work-Project1", 0, 0, "%0", "bash", ""),
+        pane("personal", 0, 0, "%1", "bash", "")
+      ),
+      ..Default::default()
+    };
+
+    let mut tmux = Tmux::new(&Config {
+      session_filter: vec!["WORK".to_string()],
+      ..Config::default()
+    });
+
+    tmux.capture_with_runner(&runner).unwrap();
+
+    assert_eq!(tmux.panes.len(), 1);
+    assert_eq!(tmux.panes[0].session, "Work-Project1");
   }
 
   #[test]
