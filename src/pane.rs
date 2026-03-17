@@ -40,7 +40,7 @@ impl Pane {
     let descriptor = if window_name.is_empty() {
       format!("{}:{}", self.session, self.window_index)
     } else {
-      format!("{}:{}", self.session, window_name)
+      format!("{}:{}:{}", self.session, self.window_index, window_name)
     };
 
     if command.is_empty() {
@@ -81,7 +81,7 @@ mod tests {
   }
 
   #[test]
-  fn title_displays_window_name_when_present() {
+  fn title_displays_window_name_and_index_when_present() {
     let pane = Pane {
       command: "bash".into(),
       index: 1,
@@ -91,18 +91,32 @@ mod tests {
       ..Default::default()
     };
 
-    assert_eq!(pane.title(), "session:my-window (bash)");
+    assert_eq!(pane.title(), "session:2:my-window (bash)");
   }
 
   #[test]
-  fn title_falls_back_to_descriptor_when_command_blank() {
+  fn title_falls_back_to_window_index_when_no_name() {
     let pane = Pane {
+      command: "bash".into(),
       index: 1,
       session: "session".into(),
       window_index: 2,
       ..Default::default()
     };
 
-    assert_eq!(pane.title(), "session:2");
+    assert_eq!(pane.title(), "session:2 (bash)");
+  }
+
+  #[test]
+  fn title_omits_command_when_blank() {
+    let pane = Pane {
+      index: 1,
+      session: "session".into(),
+      window_name: "my-window".into(),
+      window_index: 2,
+      ..Default::default()
+    };
+
+    assert_eq!(pane.title(), "session:2:my-window");
   }
 }
