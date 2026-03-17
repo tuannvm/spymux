@@ -9,6 +9,8 @@ pub(crate) struct Pane {
   pub(crate) index: usize,
   pub(crate) path: String,
   pub(crate) session: String,
+  #[serde(default)]
+  pub(crate) window_name: String,
   pub(crate) window_index: usize,
 }
 
@@ -25,19 +27,27 @@ impl Pane {
       "\"index\":#{pane_index},",
       "\"path\":\"#{pane_current_path}\",",
       "\"session\":\"#{session_name}\",",
-      "\"window_index\":#{window_index}",
+      "\"window_index\":#{window_index},",
+      "\"window_name\":\"#{window_name}\"",
       "}"
     )
   }
 
   pub(crate) fn title(&self) -> String {
     let command = self.command.trim();
+    let window_name = self.window_name.trim();
+
+    let descriptor = if window_name.is_empty() {
+      format!("{}:{}", self.session, self.window_index)
+    } else {
+      format!("{}:{}", self.session, window_name)
+    };
 
     if command.is_empty() {
-      return self.descriptor();
+      return descriptor;
     }
 
-    format!("{} ({command})", self.descriptor())
+    format!("{} ({command})", descriptor)
   }
 }
 
@@ -67,7 +77,21 @@ mod tests {
       ..Default::default()
     };
 
-    assert_eq!(pane.title(), "session:2.1 (bash)");
+    assert_eq!(pane.title(), "session:2 (bash)");
+  }
+
+  #[test]
+  fn title_displays_window_name_when_present() {
+    let pane = Pane {
+      command: "bash".into(),
+      index: 1,
+      session: "session".into(),
+      window_name: "my-window".into(),
+      window_index: 2,
+      ..Default::default()
+    };
+
+    assert_eq!(pane.title(), "session:my-window (bash)");
   }
 
   #[test]
@@ -79,6 +103,6 @@ mod tests {
       ..Default::default()
     };
 
-    assert_eq!(pane.title(), "session:2.1");
+    assert_eq!(pane.title(), "session:2");
   }
 }

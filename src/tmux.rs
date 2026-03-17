@@ -294,6 +294,7 @@ mod tests {
       "path": path,
       "session": session,
       "window_index": window_index,
+      "window_name": "",
     })
     .to_string()
   }
@@ -371,6 +372,7 @@ mod tests {
         index: 0,
         path: String::new(),
         session: "session1".to_string(),
+        window_name: String::new(),
         window_index: 0,
       }]
     );
@@ -409,6 +411,7 @@ mod tests {
           index: 0,
           path: String::new(),
           session: "session1".to_string(),
+          window_name: String::new(),
           window_index: 0,
         },
         Pane {
@@ -418,6 +421,7 @@ mod tests {
           index: 1,
           path: String::new(),
           session: "session1".to_string(),
+          window_name: String::new(),
           window_index: 0,
         },
         Pane {
@@ -427,6 +431,7 @@ mod tests {
           index: 0,
           path: String::new(),
           session: "session2".to_string(),
+          window_name: String::new(),
           window_index: 1,
         },
       ]
@@ -464,6 +469,7 @@ mod tests {
         index: 0,
         path: String::new(),
         session: "session1".to_string(),
+        window_name: String::new(),
         window_index: 0,
       }]
     );
@@ -498,6 +504,7 @@ mod tests {
         index: 3,
         path: String::new(),
         session: "mysession".to_string(),
+        window_name: String::new(),
         window_index: 5,
       }]
     );
@@ -531,6 +538,7 @@ mod tests {
         index: 0,
         path: String::new(),
         session: "session1".to_string(),
+        window_name: String::new(),
         window_index: 0,
       }]
     );
@@ -564,6 +572,7 @@ mod tests {
         index: 0,
         path: String::new(),
         session: "session1".to_string(),
+        window_name: String::new(),
         window_index: 0,
       }]
     );
@@ -580,6 +589,7 @@ mod tests {
           index: 0,
           path: String::new(),
           session: "session1".to_string(),
+          window_name: String::new(),
           window_index: 0,
         },
         Pane {
@@ -589,6 +599,7 @@ mod tests {
           index: 1,
           path: String::new(),
           session: "session1".to_string(),
+          window_name: String::new(),
           window_index: 0,
         },
       ],
@@ -606,6 +617,7 @@ mod tests {
         index: 0,
         path: String::new(),
         session: "session1".to_string(),
+        window_name: String::new(),
         window_index: 0,
       }]
     );
@@ -646,6 +658,7 @@ mod tests {
       index: 2,
       path: String::new(),
       session: "mysession".to_string(),
+      window_name: String::new(),
       window_index: 3,
     };
 
@@ -669,6 +682,7 @@ mod tests {
       index: 0,
       path: String::new(),
       session: "mysession".to_string(),
+      window_name: String::new(),
       window_index: 1,
     };
 
@@ -706,6 +720,7 @@ mod tests {
         index: 0,
         path: "/home/project".to_string(),
         session: "session1".to_string(),
+        window_name: String::new(),
         window_index: 0,
       }]
     );
@@ -736,6 +751,7 @@ mod tests {
         index: 0,
         path: "/home/project".to_string(),
         session: "session1".to_string(),
+        window_name: String::new(),
         window_index: 0,
       }]
     );
